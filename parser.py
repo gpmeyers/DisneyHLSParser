@@ -6,7 +6,6 @@
     Purpose: The purpose of this program is to pass the Disney Streaming Assessment but technically to return a sorted version of the give .m3u8 file.
 """
 # Import the requests module to handle getting the file from a url
-import string
 import requests
 
 # Import the module for creating and working on a model for the m3u8 files
