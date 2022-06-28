@@ -142,7 +142,10 @@ class m3u8:
                         dumpStart.append(key)
             
             # Sort the remaining elements using the sorting function
-            tagType.sort(key=self._sortBy)
+            try:
+                tagType.sort(key=self._sortBy)
+            except TypeError:
+                tagType.sort(key=self._sortByExcept)
 
             # Append the elements that do not contain the attribute to the end
             self.data[key] = tagType + missing
@@ -170,6 +173,21 @@ class m3u8:
                 except ValueError:
                     return value
 
+    def _sortByExcept(self, l):
+        """
+            This is the sorting helper function used in sort to sort the tag groups in the case of a TypeError exception from the first sortBy.
+            This will be used in the event that an attribute has elements of unlike types and then they will all be sorted as strings
+
+            Args:
+                l (list): We are sorting lists within a list. We find the dictionary in the list with the matching attribute and .
+
+            Returns:
+                A value from the keys within the list, will either be a number or a string depending.
+        """
+        for elem in l:
+            if list(elem.keys())[0] == self.sortBy:
+                return elem[list(elem.keys())[0]]
+
     def dump(self, filename) -> None:
         """
             This function dumps the newly sorted elements out to a .m3u8 file output.
@@ -185,8 +203,6 @@ class m3u8:
 
             if self.independentSegments:
                 out.write('#EXT-X-INDEPENDENT-SEGMENTS\n\n')
-
-            print(self.dumpOrder)
 
             for item in self.dumpOrder:
                 if item == 'media':
