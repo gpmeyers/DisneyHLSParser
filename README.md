@@ -5,6 +5,7 @@ This is written in Python3 and so Python 3 is required to run it. (Pip as well)
 
 Need the requests package. Run 'pip3 install requests' on the command line to get it.
 Need the regex package. Run 'pip3 install regex' on the command line to get it.
+Need the argparse package. I believe that this is default with Python3 but you may need to get it via pip.
 
 # Command-Line Interface (CLI)
 I am not sure if these are dependencies but the os and argparse packages have been imported for the purpose of making a CLI so that it will be easier for you the user
