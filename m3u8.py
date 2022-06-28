@@ -25,6 +25,7 @@ class m3u8:
         self.filename = filename
         self.independentSegments = False
         self.sortBy = 'BANDWIDTH'
+        self.dumpOrder = ['media', 'stream_inf', 'iframe_stream_inf']
 
         self.data = {
             'media': [],
@@ -113,6 +114,9 @@ class m3u8:
 
         # self.data {'media': tagType [elemList [{attr: data}]]}
 
+        dumpStart = []
+        dumpEnd = []
+
         for key in self.data:
             self.sortBy = sortBy
             tagType = self.data[key]
@@ -130,14 +134,21 @@ class m3u8:
                 if missingSortBy:
                     missing.append(elemList)
                     tagType = tagType[:i] + tagType[i + 1:]
+                    if key not in dumpEnd and key not in dumpStart:
+                        dumpEnd.append(key)
                 else:
                     i += 1
+                    if key not in dumpEnd and key not in dumpStart:
+                        dumpStart.append(key)
             
             # Sort the remaining elements using the sorting function
             tagType.sort(key=self._sortBy)
 
             # Append the elements that do not contain the attribute to the end
             self.data[key] = tagType + missing
+
+        # Set the order that the tags are dumped in
+        self.dumpOrder = dumpStart + dumpEnd
 
     def _sortBy(self, l):
         """
@@ -175,37 +186,45 @@ class m3u8:
             if self.independentSegments:
                 out.write('#EXT-X-INDEPENDENT-SEGMENTS\n\n')
 
-            for elem in self.data['media']:
-                outLine = '#EXT-X-MEDIA:'
+            print(self.dumpOrder)
 
-                for attr in elem:
-                    outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
+            for item in self.dumpOrder:
+                if item == 'media':
+                    for elem in self.data['media']:
+                        outLine = '#EXT-X-MEDIA:'
 
-                outLine = outLine[:-1] + '\n'
-                out.write(outLine)
+                        for attr in elem:
+                            outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
 
-            for elem in self.data['stream_inf']:
-                outLine = '#EXT-X-STREAM-INF:'
+                        outLine = outLine[:-1] + '\n'
+                        out.write(outLine)
+                
+                elif item == 'stream_inf':
+                    for elem in self.data['stream_inf']:
+                        outLine = '#EXT-X-STREAM-INF:'
 
-                if list(elem[-1].keys())[0] == 'URI':
-                    for attr in elem[:-1]:
-                        outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
+                        if list(elem[-1].keys())[0] == 'URI':
+                            for attr in elem[:-1]:
+                                outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
 
-                    outLine = outLine[:-1] + '\n'
-                    out.write(outLine)
-                    out.write((list(elem[-1].values())[0] + '\n'))
-                else:
-                    for attr in elem:
-                        outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
+                            outLine = outLine[:-1] + '\n'
+                            out.write(outLine)
+                            out.write((list(elem[-1].values())[0] + '\n'))
+                        else:
+                            for attr in elem:
+                                outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
 
-                    outLine = outLine[:-1] + '\n'
-                    out.write(outLine)
+                            outLine = outLine[:-1] + '\n'
+                            out.write(outLine)
+                
+                elif item == 'iframe_stream_inf':
+                    for elem in self.data['iframe_stream_inf']:
+                        outLine = '#EXT-X-I-FRAME-STREAM-INF:'
 
-            for elem in self.data['iframe_stream_inf']:
-                outLine = '#EXT-X-I-FRAME-STREAM-INF:'
+                        for attr in elem:
+                            outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
 
-                for attr in elem:
-                    outLine = outLine + list(attr.keys())[0] + '=' + list(attr.values())[0] + ','
-
-                outLine = outLine[:-1] + '\n'
-                out.write(outLine)
+                        outLine = outLine[:-1] + '\n'
+                        out.write(outLine)
+                
+                out.write('\n')
