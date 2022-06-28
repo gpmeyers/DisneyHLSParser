@@ -46,6 +46,7 @@ class m3u8:
         with open(self.filename, 'r') as f:
             lines = f.readlines()
 
+            # Pase the file line by line differently depending on the tag
             for i in range(0, len(lines)):
                 if lines[i].startswith('#EXTM3U'):  # This is the file header indicating Extended M3U and must be first line of the file. We pass
                     pass
@@ -55,31 +56,13 @@ class m3u8:
 
                 elif lines[i].startswith('#EXT-X-MEDIA'): # Relates Media Playlists that contain alternative Renditions of the same content
                     info = lines[i].split(':')[1]
-
-                    rx = re.compile(r'"[^"]*"(*SKIP)(*FAIL)|,\s*')  # Regex to split by commas not within quotes
-
-                    parts = rx.split(info)
-
-                    data = []
-                    for item in parts:
-                        key = item.split('=')[0].replace('"', '').strip()
-                        val = item.split('=')[1].replace('"', '').strip()
-                        data.append({key: val})
+                    data = self._parseAttributes(info)
                     
                     self.data['media'].append(data)
 
                 elif lines[i].startswith('#EXT-X-STREAM-INF'): # Specifies a Variant Stream that is a part of the Renditions
                     info = lines[i].split(':')[1]
-
-                    rx = re.compile(r'"[^"]*"(*SKIP)(*FAIL)|,\s*')  # Regex to split by commas not within quotes
-
-                    parts = rx.split(info)
-
-                    data = []
-                    for item in parts:
-                        key = item.split('=')[0].replace('"', '').strip()
-                        val = item.split('=')[1].replace('"', '').strip()
-                        data.append({key: val})
+                    data = self._parseAttributes(info)
 
                     if not lines[i + 1].startswith('#') and not lines[i + 1].startswith('\n'):
                         data.append({'URI': lines[i + 1].strip()})
@@ -88,18 +71,31 @@ class m3u8:
 
                 elif lines[i].startswith('#EXT-X-I-FRAME-STREAM-INF'): # indicates that the playlist file contains I-frames of Multimedia presentation
                     info = lines[i].split(':')[1]
-
-                    rx = re.compile(r'"[^"]*"(*SKIP)(*FAIL)|,\s*')  # Regex to split by commas not within quotes
-
-                    parts = rx.split(info)
-
-                    data = []
-                    for item in parts:
-                        key = item.split('=')[0].replace('"', '').strip()
-                        val = item.split('=')[1].replace('"', '').strip()
-                        data.append({key: val})
+                    data = self._parseAttributes(info)
                     
                     self.data['iframe_stream_inf'].append(data)
+
+    def _parseAttributes(self, attrStr) -> list:
+        """
+            This is a helper function to parse that will retrieve each of the attributes out of the string that comes after the tag.
+
+            Args:
+                attrStr (str): This is the string that contains the attributes
+            
+            Returns:
+                A list of all of the attributes stored in the form [{ attr: data }, ...]
+        """
+        rx = re.compile(r'"[^"]*"(*SKIP)(*FAIL)|,\s*')  # Regex to split by commas not within quotes
+
+        parts = rx.split(attrStr)
+
+        data = []
+        for item in parts:
+            key = item.split('=')[0].replace('"', '').strip()
+            val = item.split('=')[1].replace('"', '').strip()
+            data.append({key: val})
+
+        return data
 
     def sort(self, sortBy='BANDWITH') -> None:
         """
@@ -134,11 +130,11 @@ class m3u8:
                 if missingSortBy:
                     missing.append(elemList)
                     tagType = tagType[:i] + tagType[i + 1:]
-                    if key not in dumpEnd and key not in dumpStart:
+                    if key not in dumpEnd and key not in dumpStart: # If the elements stored by key do not have the attribute then they will be dumped at the end of the file
                         dumpEnd.append(key)
                 else:
                     i += 1
-                    if key not in dumpEnd and key not in dumpStart:
+                    if key not in dumpEnd and key not in dumpStart: # If the elements stored by key have the attribute then they show up first
                         dumpStart.append(key)
             
             # Sort the remaining elements using the sorting function
